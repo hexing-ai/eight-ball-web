@@ -60,3 +60,9 @@
 - Dockerfile 提供 Node.js 22 完整前后端镜像，尚未在 Docker 宿主实际构建验收。
 
 本次生产 Demo 实测：桌面 W 蓄力约 47% 后松键成功出杆，动画结束后回合版本更新，玩家切换；未暴露开发诊断钩子。手机 844×390 触摸出杆、重新摆球及无横向溢出由浏览器触控模拟检查。Demo 不请求 /socket、/matchmake 或房间 HTTP 接口。
+
+试玩入口截图：
+
+![Pages 同屏试玩入口](screenshots/demo-lobby.png)
+
+![Pages 手机横屏试玩](screenshots/demo-mobile.png)
