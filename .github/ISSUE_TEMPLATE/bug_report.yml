@@ -1,0 +1,32 @@
+name: Bug / 兼容性问题
+description: 报告可复现的游戏或设备问题
+title: "[Bug] "
+body:
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 运行方式
+      options:
+        - GitHub Pages 同屏试玩
+        - 本地完整联网版
+        - 自托管生产环境
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: 设备和浏览器
+      placeholder: 例如 Windows / Chrome 版本，或 iPhone / Safari 版本
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤、预期结果和实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图或日志（可选）
+      description: 请移除个人信息、密钥、重连凭据和仍有效的邀请码。

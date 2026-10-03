@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+data/
+*.log
+.DS_Store
+coverage/
+web-dist/
+.vefaas/
+.env.*
+!.env.example
+web/public/third-party-notices.txt
+web/public/licenses/
+
+# Local design proposals and development transcripts are not release assets.
+design/
+docs/test-output*.txt

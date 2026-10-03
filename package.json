@@ -1,0 +1,40 @@
+{
+  "name": "eight-ball-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build:server && npm run build:web",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.web.json",
+    "start": "node dist/server/main.js",
+    "test": "npm run build:server && node --test dist/test/*.test.js",
+    "benchmark": "npm run build && node dist/scripts/benchmark.js",
+    "build:server": "tsc -p tsconfig.json",
+    "build:web": "node scripts/build-notices.mjs && tsc -p tsconfig.web.json && vite build",
+    "dev": "node scripts/dev.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "build:demo": "node scripts/build-demo.mjs",
+    "demo": "vite --mode demo"
+  },
+  "dependencies": {
+    "@colyseus/core": "^0.17.52",
+    "@colyseus/ws-transport": "^0.17.0",
+    "express": "^5.1.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "@colyseus/sdk": "^0.17.43",
+    "vite": "^7.1.0"
+  },
+  "overrides": {
+    "nanoid": "^3.3.18"
+  },
+  "description": "Landscape eight-ball pool with dual aim guides, spin and self-hosted friend multiplayer.",
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,12 @@
+node_modules
+dist
+web-dist
+.vefaas
+design
+docs
+.git
+.env
+.env.*
+data
+coverage
+*.log

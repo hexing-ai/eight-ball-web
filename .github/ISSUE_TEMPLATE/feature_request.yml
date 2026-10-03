@@ -1,0 +1,15 @@
+name: 建议 / Feature request
+description: 分享你希望改善的体验
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 希望怎样改善？
+    validations:
+      required: true
