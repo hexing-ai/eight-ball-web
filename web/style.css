@@ -15,3 +15,9 @@
 #demo-actions>.gold-button{width:100%}
 .demo-mode .lobby-card{border-top:3px solid #c9a36d}
 @media(max-height:540px) and (orientation:landscape){#demo-actions{grid-column:2;grid-row:1/5;align-self:center}.demo-note{font-size:11px;margin:12px 0}.repo-link{font-size:11px}}
+
+#demo-actions>.outline-button,#practice-full-start{width:100%;margin-top:10px}
+#practice-place{padding:8px 12px;white-space:nowrap}
+@media(max-width:950px){.footer:has(#practice-place:not([hidden])) .input-hint{display:none}}
+
+@media(max-height:540px) and (orientation:landscape){#practice-place{min-height:26px;padding:3px 9px;font-size:10px}}

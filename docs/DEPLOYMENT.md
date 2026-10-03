@@ -2,7 +2,7 @@
 
 ## 在线 Demo：GitHub Pages
 
-本仓库的 [Pages Demo](https://hexing-ai.github.io/eight-ball-web/) 提供同屏双人八球，完全在浏览器运行，不依赖云服务器。关闭页面后不会留下房间；刷新重新开始。
+本仓库的 [Pages Demo](https://hexing-ai.github.io/eight-ball-web/) 提供单人自由练习和同屏双人八球，完全在浏览器运行，不依赖云服务器。关闭页面后不会留下房间；刷新重新开始。
 
 维护者将 Pages 的 Build and deployment 设为 **GitHub Actions**。推送 `main` 后，`.github/workflows/pages.yml` 安装锁定依赖，运行类型检查和测试，再构建、发布 `web-dist/`。
 

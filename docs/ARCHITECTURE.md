@@ -51,11 +51,13 @@ stateDiagram-v2
 
 模型为休闲平面物理，包含碰撞、库边反弹、滑动和滚动摩擦，以及简化的高低杆。球杆冲量部分改编自 Apache-2.0 的 pooltool；出处、提交及改动见第三方声明。
 
-## Pages Demo
+## 本地单人练习与 Pages Demo
+
+`shared/practice-game.ts` 独立管理单人练习：仅一个玩家，没有倒计时、不调用八球判罚，全部 15 颗目标球入袋即完成。白球落袋后进入摆球状态，也可主动自由摆白球。出杆、动画期间锁定操作，重摆和退出用代次标识丢弃异步结果。练习与同屏双人共用物理 Worker、动画及输入控制。完整版和 Pages 都提供练习入口。
 
 `shared/local-game.ts` 把相同的 `Match` 状态机接到浏览器的物理 Worker。当前回合玩家由同一个页面控制，因此是**同屏双人**而非远程对战，也没有 AI 对手。模拟期间重开或退出时，用代次标识丢弃过期结果。
 
-`npm run build:demo` 显式开启 `VITE_DEMO=true`。Pages 只部署构建后的 `web-dist/`，不上传后端状态、数据目录或密钥。完整版本 `npm run build` 默认保留邀请好友模式。
+`npm run build:demo` 显式开启 `VITE_DEMO=true`。Pages 只部署构建后的 `web-dist/`，不上传后端状态、数据目录或密钥。完整版本 `npm run build` 提供单人练习及邀请好友模式。
 
 ## 联网边界
 

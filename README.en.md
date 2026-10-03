@@ -2,17 +2,17 @@
 
 **See where the object ball goes—and where the cue ball goes next.**
 
-A landscape pool game for desktop and mobile browsers, with two aim guides, follow/draw spin, and self-hosted friend multiplayer.
+A landscape pool game for desktop and mobile browsers, with two aim guides, follow/draw spin, solo practice, and self-hosted friend multiplayer.
 
 [**Play the demo**](https://hexing-ai.github.io/eight-ball-web/) · [中文](README.md) · [Architecture](docs/ARCHITECTURE.md)
 
 [![Actual multiplayer gameplay](docs/screenshots/desktop-game.png)](https://hexing-ai.github.io/eight-ball-web/)
 
-**The public demo is local two-player hotseat.** Two people take turns on one device. It runs entirely in the browser and does not offer remote matchmaking. GitHub Pages cannot host the WebSocket server; the full multiplayer backend is included for self-hosting. The current game UI and detailed documentation are in Chinese.
+**Play solo immediately, or choose two-player hotseat.** Practice has no timer or fouls: pot all 15 object balls in any order, reposition the cue ball freely, or reset the rack. Potting the black early does not end practice. Progress resets when you leave or reload. It runs entirely in the browser and does not offer remote matchmaking. GitHub Pages cannot host the WebSocket server; the full multiplayer backend is included for self-hosting. The current game UI and detailed documentation are in Chinese.
 
 ## Try it in a minute
 
-Open the [demo](https://hexing-ai.github.io/eight-ball-web/), click the gold start button, aim with your mouse, hold **W**, then release to shoot. On mobile, rotate to landscape, drag to aim and pull down the right power bar to shoot. The left rail fine-tunes the angle; the cue-ball widget sets top/back spin.
+Open the [demo](https://hexing-ai.github.io/eight-ball-web/), click the gold solo-practice button, aim with your mouse, hold **W**, then release to shoot. On mobile, rotate to landscape, drag to aim and pull down the right power bar to shoot. The left rail fine-tunes the angle; the cue-ball widget sets top/back spin.
 
 Gold predicts the object-ball direction. Dashed blue predicts the cue-ball direction after contact. Both respond to shot power and strike position.
 
@@ -27,9 +27,9 @@ npm ci
 npm run dev
 ```
 
-Visit **http://127.0.0.1:5188/**. Create a room in one tab, join with its eight-character invite code in a second tab, and ready both players. The backend listens on port 2567.
+Visit **http://127.0.0.1:5188/** and choose solo practice without a nickname. For multiplayer, create a room in one tab, join with its eight-character invite code in a second tab, and ready both players. The backend listens on port 2567.
 
-For the browser-only hotseat demo, run `npm run demo` instead of `npm run dev`.
+For the browser-only solo / hotseat demo, run `npm run demo` instead of `npm run dev`.
 
 ## Built for actual play
 
@@ -45,7 +45,7 @@ For the browser-only hotseat demo, run `npm run demo` instead of `npm run dev`.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run demo` | Local browser-only hotseat demo |
+| `npm run demo` | Local browser-only solo / hotseat demo |
 | `npm run dev` | Full frontend + multiplayer backend |
 | `npm run typecheck` | Type-check frontend and backend |
 | `npm test` | Physics, rules, inputs, demo and real HTTP/WebSocket integration |
