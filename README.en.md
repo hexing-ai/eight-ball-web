@@ -16,7 +16,7 @@ Open the [demo](https://hexing-ai.github.io/eight-ball-web/), click the gold vs-
 
 A four-step illustrated tutorial appears before your first game. Skip at any step, or revisit it from the menu.
 
-Gold predicts the object-ball direction. Dashed blue predicts the cue-ball direction after contact. Both respond to shot power and strike position, with short hints of roughly three to four ball diameters. Cue, ball, cushion and pocket impacts use distinct synthesized sounds with impact-dependent volume and stereo position.
+Gold predicts the object-ball direction. Dashed blue predicts the cue-ball direction after contact. Both respond to shot power and strike position, with short hints of roughly three to four ball diameters. Cue, ball and pocket impacts now use licensed recordings; the cushion response is processed from a recorded impact. Volume and stereo position follow the contact. The menu offers individual previews; see [audio sources and licenses](docs/AUDIO_SOURCES.md).
 
 ## Run locally
 
@@ -35,7 +35,7 @@ For the browser-only vs-computer demo, run `npm run demo` instead of `npm run de
 
 ## Built for actual play
 
-- Canvas-rendered green cloth, wood rails, numbered solids/stripes, six pockets and synthesized audio.
+- Canvas-rendered green cloth, wood rails, numbered solids/stripes, six pockets and licensed recorded audio.
 - Desktop mouse + W and mobile landscape controls, with fine adjustment and top/back spin.
 - Shared physics and rules for previews, animation, computer matches and multiplayer.
 - Server-authoritative shots, turn/version checks, idempotency, input validation and 60-second reconnection.

@@ -120,7 +120,7 @@ function applySnapshot(next:Snapshot){
  if(!next.ballInHand)placement=null;
  if(next.phase==='animating'&&next.activeShot)void startPlayback(next.activeShot);
  if(next.phase!=='animating'&&next.phase!=='simulating')playback=null;
- if(old&&old.turnVersion!==next.turnVersion&&next.current===seat&&next.phase==='aiming'){audio.play('turn');toast(next.reason);}
+ if(old&&old.turnVersion!==next.turnVersion&&next.current===seat&&next.phase==='aiming'){toast(next.reason);}
  persistSession();updateView();
 }
 async function startPlayback(shot:ActiveShot){
@@ -201,6 +201,7 @@ $<HTMLSelectElement>('sensitivity').value=String(sensitivity);$('sensitivity').o
 audio.enabled=read('eightball-sound')!=='off';
 function updateSound(){button('sound-button').setAttribute('aria-pressed',String(audio.enabled));button('sound-button').setAttribute('aria-label',audio.enabled?'关闭声音':'开启声音');text('sound-button',audio.enabled?'♪':'♩');}
 $('sound-button').onclick=()=>{if(audio.enabled)audio.mute();else audio.enabled=true;save('eightball-sound',audio.enabled?'on':'off');audio.unlock();updateSound();};updateSound();
+for(const kind of ['cue','collision','cushion','pocket'] as const)$(`preview-${kind}`).onclick=()=>{if(!audio.enabled){toast('请先开启右上角的声音开关。');return;}void audio.preview(kind);};
 $('fullscreen-button').onclick=()=>{cancelInput();const op=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();void op?.catch(()=>toast('当前浏览器不支持全屏，可直接横屏游玩。'));};
 function shoot(power:number){
  if(!canShoot()||!state)return;audio.unlock();cancelInput();guide=null;previewPower=power;

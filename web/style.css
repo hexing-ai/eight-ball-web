@@ -22,3 +22,5 @@
 .mode-description{font-size:11px;color:#a6b9aa;margin:7px 0 14px;line-height:1.6}
 #friend-panel>.text-button{margin-top:8px}
 @media(max-height:540px) and (orientation:landscape){#friend-panel{grid-column:2;grid-row:1/5;align-self:center}.mode-description{font-size:10px;margin:5px 0 9px}#mode-actions>.outline-button{margin-top:2px}}
+
+.sound-preview{border-top:1px solid #fff1;margin-top:18px;padding-top:14px;font-size:12px;color:#b7c3b8}.sound-preview>div{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.sound-preview button{flex:1;min-width:65px;padding:8px;min-height:44px}.sound-preview a{font-size:11px;color:#d0bd96}
