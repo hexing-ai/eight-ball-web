@@ -2,17 +2,17 @@
 
 **See where the object ball goes—and where the cue ball goes next.**
 
-A landscape pool game for desktop and mobile browsers, with two aim guides, follow/draw spin, solo practice, and self-hosted friend multiplayer.
+A landscape pool game for desktop and mobile browsers, with two aim guides, follow/draw spin, computer opponents, and self-hosted friend multiplayer.
 
 [**Play the demo**](https://hexing-ai.github.io/eight-ball-web/) · [中文](README.md) · [Architecture](docs/ARCHITECTURE.md)
 
-[![Actual multiplayer gameplay](docs/screenshots/desktop-game.png)](https://hexing-ai.github.io/eight-ball-web/)
+[![Actual vs-computer gameplay](docs/screenshots/bot-desktop.png)](https://hexing-ai.github.io/eight-ball-web/)
 
-**Play solo immediately, or choose two-player hotseat.** Practice has no timer or fouls: pot all 15 object balls in any order, reposition the cue ball freely, or reset the rack. Potting the black early does not end practice. Progress resets when you leave or reload. It runs entirely in the browser and does not offer remote matchmaking. GitHub Pages cannot host the WebSocket server; the full multiplayer backend is included for self-hosting. The current game UI and detailed documentation are in Chinese.
+**Two modes: vs Computer and Online Friends.** The computer picks legal targets, evaluates shots and places ball-in-hand automatically. Online Friends means two people on separate devices joining by invite code. **The public multiplayer backend is not deployed yet**; that entry explicitly shows it is unavailable. Run the included backend locally to test multiplayer, or deploy it later. The game UI and detailed documentation are in Chinese.
 
 ## Try it in a minute
 
-Open the [demo](https://hexing-ai.github.io/eight-ball-web/), click the gold solo-practice button, aim with your mouse, hold **W**, then release to shoot. On mobile, rotate to landscape, drag to aim and pull down the right power bar to shoot. The left rail fine-tunes the angle; the cue-ball widget sets top/back spin.
+Open the [demo](https://hexing-ai.github.io/eight-ball-web/), click the gold vs-computer button, aim with your mouse, hold **W**, then release to shoot. On mobile, rotate to landscape, drag to aim and pull down the right power bar to shoot. The left rail fine-tunes the angle; the cue-ball widget sets top/back spin.
 
 Gold predicts the object-ball direction. Dashed blue predicts the cue-ball direction after contact. Both respond to shot power and strike position.
 
@@ -27,25 +27,25 @@ npm ci
 npm run dev
 ```
 
-Visit **http://127.0.0.1:5188/** and choose solo practice without a nickname. For multiplayer, create a room in one tab, join with its eight-character invite code in a second tab, and ready both players. The backend listens on port 2567.
+Visit **http://127.0.0.1:5188/** and choose vs Computer without a nickname. For multiplayer, choose Online Friends and create a room in one tab, join with its eight-character invite code in a second tab, and ready both players. The backend listens on port 2567.
 
-For the browser-only solo / hotseat demo, run `npm run demo` instead of `npm run dev`.
+For the browser-only vs-computer demo, run `npm run demo` instead of `npm run dev`.
 
 ## Built for actual play
 
 - Canvas-rendered green cloth, wood rails, numbered solids/stripes, six pockets and synthesized audio.
 - Desktop mouse + W and mobile landscape controls, with fine adjustment and top/back spin.
-- Shared physics and rules for previews, animation, hotseat and multiplayer.
+- Shared physics and rules for previews, animation, computer matches and multiplayer.
 - Server-authoritative shots, turn/version checks, idempotency, input validation and 60-second reconnection.
 - Invite rooms, ball-in-hand, fouls, black-eight win/loss and rematches.
 
-![Mobile landscape gameplay, captured using touch emulation](docs/screenshots/mobile-landscape.png)
+![Mobile landscape gameplay, captured using touch emulation](docs/screenshots/bot-mobile.png)
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run demo` | Local browser-only solo / hotseat demo |
+| `npm run demo` | Local browser-only vs-computer demo |
 | `npm run dev` | Full frontend + multiplayer backend |
 | `npm run typecheck` | Type-check frontend and backend |
 | `npm test` | Physics, rules, inputs, demo and real HTTP/WebSocket integration |
@@ -58,7 +58,7 @@ For production, serve the built `web-dist/` through the backend with `STATIC_DIR
 
 This is a casual planar model, not a calibrated billiards simulator. It implements follow/draw but not side spin or jump shots. Aim guides show short paths after the first collision, not guaranteed pots.
 
-Multiplayer uses one Node.js process and in-memory rooms. Restarting the server interrupts matches. Physical mobile devices, Safari and public-network capacity require further validation. There is no AI opponent, account system or ranking service.
+Multiplayer uses one Node.js process and in-memory rooms. Restarting the server interrupts matches. Physical mobile devices, Safari and public-network capacity require further validation. The computer uses bounded heuristic shot search, with one difficulty level and no model API. There is no account system or ranking service.
 
 ## Rights and feedback
 

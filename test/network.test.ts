@@ -40,6 +40,13 @@ test("real HTTP/WebSocket invite, rules, idempotency, synchronization, reconnect
     assert.equal((await fetch(url+"/api/config",{headers:{Origin:"https://untrusted.example"}})).status,403);
     const forbidden=await fetch(url+"/matchmake/create/eightball",{method:"POST",headers:{Origin:"https://untrusted.example","Content-Type":"application/json"},body:"{}"});
     assert.equal(forbidden.status,403);
+    assert.equal(forbidden.headers.get("Access-Control-Allow-Origin"),null);
+    const preflight=await fetch(url+"/matchmake/create/eightball",{method:"OPTIONS",headers:{Origin:"http://localhost:5173","Access-Control-Request-Method":"POST","Access-Control-Request-Headers":"content-type"}});
+    assert.equal(preflight.status,204);
+    assert.equal(preflight.headers.get("Access-Control-Allow-Origin"),"http://localhost:5173");
+    assert.equal(preflight.headers.get("Access-Control-Allow-Credentials"),"true");
+    const allowedResponse=await fetch(url+"/api/config",{headers:{Origin:"http://localhost:5173"}});
+    assert.equal(allowedResponse.headers.get("Access-Control-Allow-Credentials"),"true");
     const host=await sdk.create("eightball",{nickname:"玩家一",creatorKey:randomUUID(),protocol:1});clients.push(host);
     const a=inbox(host);host.send("command",{type:"sync",requestId:"sync1"});
     const welcome=await a.wait("welcome");

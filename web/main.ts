@@ -1,14 +1,13 @@
 import './style.css';
 import { Client,type Room } from '@colyseus/sdk';
 import { ball,canPlace,TABLE } from '../shared/physics.js';
-import { PHYSICS_VERSION,RULES_VERSION,groupOf,type Ball,type Guide,type Seat,type Simulation,type Vec } from '../shared/types.js';
+import { PHYSICS_VERSION,RULES_VERSION,type Ball,type Guide,type Seat,type Simulation,type Vec } from '../shared/types.js';
 import { Charge,normalizeAngle } from '../shared/client-input.js';
 import type { Match,ActiveShot } from '../server/match.js';
 import { TableRenderer,COLORS,type RenderBall } from './render.js';
 import { PhysicsClient } from './physics-client.js';
 import { GameAudio } from './audio.js';
-import { LocalGame } from '../shared/local-game.js';
-import { PracticeGame } from '../shared/practice-game.js';
+import { BotGame } from '../shared/bot-game.js';
 
 type Snapshot=ReturnType<Match['snapshot']>;
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
@@ -26,10 +25,9 @@ const serverBase=(import.meta.env.VITE_BACKEND_URL||`${location.origin}/socket`)
 const apiBase=import.meta.env.VITE_BACKEND_URL?serverBase.replace(/^ws:/,'http:').replace(/^wss:/,'https:'):location.origin;
 const sdk=new Client(serverBase);
 const demoMode=import.meta.env.VITE_DEMO==='true'||new URLSearchParams(location.search).has('demo');
-let localGame:LocalGame|PracticeGame|null=null;
-let localMode:'practice'|'hotseat'|null=null;
-const isPractice=()=>localMode==='practice';
-const connected=(s:Snapshot)=>isPractice()?!!s.players[0]?.connected:s.players.every(p=>p?.connected);
+const networkConfigured=!demoMode||!!import.meta.env.VITE_BACKEND_URL;
+let localGame:BotGame|null=null;
+const connected=(s:Snapshot)=>s.players.every(p=>p?.connected);
 let room:Room|null=null,state:Snapshot|null=null,seat:Seat=0,inviteCode='',online=false,connecting=false,epoch=0,reconnecting=false,reconnectUntil=0;
 let angle=0,spin=0,previewPower=.3,guide:Guide|null=null,guideVersion=0,previewKey='',lastPreview=0,lastAim=0,serverOffset=0;
 let placement:Vec|null=null,placing=false,sending=false,pendingShot:{type:'shot';requestId:string;turnVersion:number;shot:{angle:number;power:number;spin:number}}|null=null,pendingAt=0;
@@ -48,7 +46,7 @@ const canAdjust=()=>canShoot()&&!charge.owner&&activePointer===null;
 function cancelInput(){charge.cancel();activePointer=null;pointerMode=null;document.body.classList.remove('charging');}
 function invalidateGuide(){guideVersion++;guide=null;previewKey='';}
 function send(payload:Record<string,unknown>){
- if(localGame&&online){void localGame.send({requestId:uuid(),...payload} as Parameters<LocalGame['send']>[0]);return true;}
+ if(localGame&&online){void localGame.send({requestId:uuid(),...payload} as Parameters<BotGame['send']>[0]);return true;}
  if(!room||!online||!room.connection.isOpen)return false;room.send('command',{requestId:uuid(),...payload});return true;
 }
 function persistSession(){if(room&&inviteCode)save('eightball-room',JSON.stringify({token:room.reconnectionToken,code:inviteCode,until:Date.now()+65_000,backend:serverBase}),true);}
@@ -58,7 +56,7 @@ function resetAim(){cancelInput();spin=0;previewPower=.3;angle=0;placement=null;
 function updateSpin(){ $('spin-dot').style.top=`${50-spin*36}%`;$('spin-ball').setAttribute('aria-valuenow',String(Math.round(spin*100)));text('spin-label',`击点 · ${spin>.08?'高杆':spin<-.08?'低杆':'中杆'}`);}
 function errorMessage(raw:unknown){
  const value=raw instanceof Error?raw.message:String(raw);
- const labels:Record<string,string>={ROOM_NOT_FOUND:'没有找到这个房间，请检查邀请码。',ROOM_ENDED:'房间已结束或服务已重启，请重新建房。',INVITE_REQUIRED_OR_FULL:'房间已满或邀请码不正确。',INVALID_JOIN:'昵称或邀请码格式不正确。',INVALID_CREATE:'请输入有效昵称后重试。',SERVER_FULL:'球桌暂时已满，请稍后再试。',NOT_YOUR_TURN:'现在轮到好友击球。',STALE_TURN:'回合已更新，请重新瞄准。',WAITING_RECONNECT:'好友正在重连，请稍候。',NOT_AIMING:'请等待所有球停稳。',PLACE_CUE_FIRST:'请先放好白球。',INVALID_PLACEMENT:'白球不能重叠、越界或放在袋口。',INVALID_COMMAND:'操作参数无效，请重试。',RATE_LIMITED:'操作过于频繁，请稍候。',SIMULATION_FAILED:'本杆计算失败，请重新出杆。',OPERATION_CONFLICT:'这次击球已处理，正在同步球位。'};
+ const labels:Record<string,string>={ROOM_NOT_FOUND:'没有找到这个房间，请检查邀请码。',ROOM_ENDED:'房间已结束或服务已重启，请重新建房。',INVITE_REQUIRED_OR_FULL:'房间已满或邀请码不正确。',INVALID_JOIN:'昵称或邀请码格式不正确。',INVALID_CREATE:'请输入有效昵称后重试。',SERVER_FULL:'球桌暂时已满，请稍后再试。',NOT_YOUR_TURN:localGame?'现在轮到电脑击球。':'现在轮到好友击球。',STALE_TURN:'回合已更新，请重新瞄准。',WAITING_RECONNECT:'好友正在重连，请稍候。',NOT_AIMING:'请等待所有球停稳。',PLACE_CUE_FIRST:'请先放好白球。',INVALID_PLACEMENT:'白球不能重叠、越界或放在袋口。',INVALID_COMMAND:'操作参数无效，请重试。',RATE_LIMITED:'操作过于频繁，请稍候。',SIMULATION_FAILED:'本杆计算失败，请重新出杆。',OPERATION_CONFLICT:'这次击球已处理，正在同步球位。'};
  for(const [key,label] of Object.entries(labels))if(value.includes(key))return label;
  return '连接未成功，请检查网络或确认房间仍然有效。';
 }
@@ -68,7 +66,6 @@ function renderTray(id:string,group:'solid'|'stripe'|null,balls:Ball[]){
  for(let i=0;i<7;i++){const item=document.createElement('span');item.className='hud-ball';if(!group){item.classList.add('empty');item.setAttribute('aria-hidden','true');}else{const n=i+(group==='solid'?1:9);item.style.setProperty('--ball-color',COLORS[n>8?n-8:n]);if(group==='stripe')item.classList.add('stripe');const potted=balls.some(b=>b.id===n&&b.pocketed);if(potted)item.classList.add('potted');const label=document.createElement('i');label.textContent=String(n);item.append(label);item.title=`${n}号球${potted?'已进袋':'待击打'}`;}tray.append(item);}
 }
 function updateControls(){
- button('practice-place').disabled=!turnAllowed()||!!state?.ballInHand;
  $('app').inert=!$('lobby').hidden||!$('waiting').hidden||!$('result').hidden;
  document.body.classList.toggle('controls-disabled',!canShoot());
  for(const id of ['fine-slider','power-slider','spin-ball'])$(id).setAttribute('aria-disabled',String(!canShoot()));
@@ -77,17 +74,16 @@ function updateControls(){
 function updateView(){
  updateControls();
  button('invite-button').disabled=localGame?!state:!inviteCode;
- show('practice-place',isPractice());
  $('invite-button').querySelector('span')!.textContent=localGame?'球桌':'邀请码';
  $('invite-button').querySelector('.copy-icon')!.textContent=localGame?'↻':'复制';
- text('settings-note',isPractice()?'自由练习：不限时、不分组，黑八可任意顺序击打。白球入袋后重新放置；清完 15 颗目标球即可完成。':localGame?'同屏双人：共用设备轮流击球，菜单不会暂停计时。':'打开菜单会取消蓄力，对局计时继续。首版支持中、高、低杆。');
+ text('settings-note',localGame?'人机对战：你与电脑轮流击球，遵守相同八球规则。每回合 60 秒，打开菜单不暂停；电脑会自动摆放自由球及出杆。':'好友联机：两人各用自己的设备，以邀请码加入同一局。每回合 60 秒，打开菜单不暂停。');
  $('connection').classList.toggle('offline',!!room&&!online);
- text('connection',isPractice()?'单人练习':localGame?'同屏双人试玩':room?(online?'已连接':'正在重连'):'好友对战');
- text('leave-button',isPractice()?'结束练习 / 返回大厅':'离开房间');
+ text('connection',localGame?'人机对战':room?(online?'已连接':'正在重连'):'好友对战');
+ text('leave-button',localGame?'结束人机对战 / 返回大厅':'离开房间');
  if(!state){renderTray('tray-0','solid',previewBalls);renderTray('tray-1','stripe',previewBalls);return;}
- const displaySeats:[Seat,Seat]=localGame?[0,1]:[seat,seat===0?1:0];
+ const displaySeats:[Seat,Seat]=[seat,seat===0?1:0];
  displaySeats.forEach((actual,index)=>{const p=state!.players[actual];text(`name-${index}`,p?.name??'等待好友');text(`group-${index}`,state!.groups[actual]==='solid'?'全色':state!.groups[actual]==='stripe'?'花色':'尚未分组');renderTray(`tray-${index}`,state!.groups[actual],state!.balls);$(`player-${index}`).classList.toggle('active',state!.current===actual&&state!.phase==='aiming');text(`ready-${index}`,state!.phase==='waiting'?(p?.ready?'已准备':''):'');});
- text('invite-code',localGame?'重新摆球':inviteCode);text('waiting-code',inviteCode);
+ text('invite-code',localGame?'重新开局':inviteCode);text('waiting-code',inviteCode);
  show('waiting',state.phase==='waiting');show('result',state.phase==='finished');show('lobby',false);
  if(state.phase==='waiting'){
    const mine=state.players[seat],friend=state.players[seat===0?1:0];text('waiting-title',friend?'好友已入座':'球桌已就绪');text('waiting-description',friend?'双方准备后，即可开球。':'分享邀请码，等好友入座。');text('waiting-self',`${mine?.name??'你'} · ${mine?.ready?'已准备':'已入座'}`);text('waiting-friend',friend?`${friend.name} · ${friend.connected?(friend.ready?'已准备':'未准备'):'已断线'}`:'等待好友…');text('ready-button',mine?.ready?'已准备，等待好友':'准备开始');button('ready-button').disabled=!!mine?.ready||!online;
@@ -96,24 +92,17 @@ function updateView(){
    text('result-title',state.winner===null?'本局已结束':state.winner===seat?'漂亮，这局你赢了':'好球，下局再来');text('result-reason',state.reason==='对方认输'?(state.winner===seat?'好友认输，本局你获胜。':'你已认输，本局好友获胜。'):state.reason==='对方断线超时'?(state.winner===seat?'好友断线超时，本局你获胜。':'重连超时，本局好友获胜。'):state.reason);text('rematch-button',state.players[seat]?.rematch?'已邀请，等待好友':'再来一局');button('rematch-button').disabled=!!state.players[seat]?.rematch||!online||!connected(state);text('rematch-status',state.players[seat===0?1:0]?.rematch?'好友想再来一局':!connected(state)?'好友已离开，可以返回大厅重新邀请':'');
  }
  if(localGame&&state.phase==='finished'){
-   text('result-title',state.winner===null?'本局结束':`${state.players[state.winner]?.name}获胜`);
-   text('result-reason',state.reason);text('rematch-button','再来一局');text('rematch-status','同一台设备，轮流出杆。');
+   text('result-reason',state.reason==='对方认输'?'你已认输，电脑获胜。':state.reason);
+   text('rematch-button','再来一局');text('rematch-status','与电脑再较量一局。');
  }
- if(isPractice()){
-   text('name-0','单人练习');text('name-1',`${state.balls.filter(b=>b.id!==0&&b.pocketed).length} / 15 已进袋`);
-   text('group-0','不限时');text('group-1',state.balls.find(b=>b.id===8)?.pocketed?'黑八已进':'含黑八');
-   renderTray('tray-0','solid',state.balls);renderTray('tray-1','stripe',state.balls);
-   $('player-1').classList.remove('active');
-   if(state.phase==='finished'){text('result-title','漂亮，清台完成！');text('rematch-button','再练一桌');text('rematch-status','不限时，按自己的节奏进步。');}
- }
- document.querySelector('.avatar-first span')!.textContent=isPractice()?'练':localGame?'一':'你';
- document.querySelector('.avatar-second span')!.textContent=isPractice()?'球':localGame?'二':'友';
- show('resign-button',!isPractice()&&!['waiting','finished'].includes(state.phase));show('leave-button',true);
+ document.querySelector('.avatar-first span')!.textContent='你';
+ document.querySelector('.avatar-second span')!.textContent=localGame?'机':'友';
+ show('resign-button',!['waiting','finished'].includes(state.phase));show('leave-button',true);
  const needsPlace=turnAllowed()&&state.ballInHand;
  show('place-confirm',needsPlace&&!!placement);button('place-confirm').disabled=placing||!placement||!canPlace(state.balls,placement);
  show('table-note',needsPlace);if(needsPlace)text('table-note','自由球 · 拖动白球，确认后瞄准');
- let label=state.phase==='waiting'?'等待双方准备':state.phase==='finished'?'本局结束':state.phase==='simulating'?'出杆确认中':state.phase==='animating'?'球正在运动':state.current===seat?(state.ballInHand?'请放置白球':'轮到你击球'):'等待好友击球';
- text('turn-label',localGame&&state.phase==='aiming'?`${state.players[state.current]?.name} · ${state.ballInHand?'自由球':'请击球'}`:label);
+ let label=state.phase==='waiting'?'等待双方准备':state.phase==='finished'?'本局结束':state.phase==='simulating'?'出杆确认中':state.phase==='animating'?'球正在运动':state.current===seat?(state.ballInHand?'请放置白球':'轮到你击球'):localGame?'电脑正在思考…':'等待好友击球';
+ text('turn-label',label);
  $('app').dataset.phase=state.phase;$('app').dataset.seat=String(seat);$('app').dataset.current=String(state.current);$('app').dataset.turnVersion=String(state.turnVersion);$('app').dataset.matchId=state.matchId;
  updateControls();
 }
@@ -124,7 +113,6 @@ function applySnapshot(next:Snapshot){
  if(!old||old.matchId!==next.matchId)resetAim();
  else if(old.turnVersion!==next.turnVersion||next.phase!=='aiming'||!connected(next)){cancelInput();invalidateGuide();}
  state=next;
- if(localGame)seat=next.current;
  if(old&&(old.turnVersion!==next.turnVersion||next.phase!=='aiming')){sending=false;pendingShot=null;placing=false;}
  if(next.phase==='aiming'&&next.ballInHand&&next.current===seat&&!placement){const p={x:TABLE.width*.25,y:TABLE.height*.5};placement=canPlace(next.balls,p)?p:{x:.3,y:.3};}
  if(!next.ballInHand)placement=null;
@@ -135,10 +123,11 @@ function applySnapshot(next:Snapshot){
 }
 async function startPlayback(shot:ActiveShot){
  const key=`${state?.matchId}:${shot.id}`;if(playback?.key===key)return;
+ angle=shot.input.angle;
  const playing={key,shot,result:null as Simulation|null,eventIndex:0};playback=playing;invalidateGuide();
  audio.play('cue');
  try{const result=await physics.simulate(shot.before,shot.input);if(playback!==playing)return;playing.result=result;const elapsed=Math.max(0,(Date.now()+serverOffset-shot.startsAt)/1000);while(playing.eventIndex<result.events.length&&result.events[playing.eventIndex].t<elapsed-.05)playing.eventIndex++;}
- catch{toast('动画计算未完成，等待服务器同步球位。');}
+ catch{toast(localGame?'动画计算未完成，等待本杆结算。':'动画计算未完成，等待服务器同步球位。');}
 }
 function bindRoom(next:Room){
  room=next;online=true;reconnecting=false;next.reconnection.enabled=false;
@@ -165,17 +154,17 @@ async function reconnect(token:string,expectedEpoch:number){
  if(expectedEpoch===epoch){reconnecting=false;clearSession();returnLobby('重连超时或房间已结束，请重新创建房间。');}
 }
 function returnLobby(message=''){
- localGame?.stop();localGame=null;localMode=null;
+ localGame?.stop();localGame=null;
  epoch++;room=null;state=null;inviteCode='';online=false;connecting=false;reconnecting=false;clearSession();resetAim();
  show('waiting',false);show('result',false);show('lobby',true);show('table-note',false);show('place-confirm',false);networkMessage('');
- text('lobby-error',message);text('name-0','你');text('name-1','等待好友');text('group-0','全色');text('group-1','花色');text('ready-0','');text('ready-1','');text('timer','8');text('turn-label','约好友，来一局');text('invite-code','— — — —');show('resign-button',false);show('leave-button',false);button('connect-button').disabled=false;setLobbyMode(lobbyMode);updateView();
+ text('lobby-error',message);text('name-0','你');text('name-1','等待好友');text('group-0','全色');text('group-1','花色');text('ready-0','');text('ready-1','');text('timer','8');text('turn-label','约好友，来一局');text('invite-code','— — — —');show('resign-button',false);show('leave-button',false);button('connect-button').disabled=false;setLobbyMode(lobbyMode);showModeSelect();updateView();
 }
 function setLobbyMode(mode:'create'|'join'){
  lobbyMode=mode;$('create-tab').setAttribute('aria-selected',String(mode==='create'));$('join-tab').setAttribute('aria-selected',String(mode==='join'));show('code-field',mode==='join');$<HTMLInputElement>('join-code').required=mode==='join';text('connect-button',mode==='join'?'加入好友的球桌 ↗':'创建好友房间 ↗');
 }
 $('create-tab').onclick=()=>setLobbyMode('create');$('join-tab').onclick=()=>setLobbyMode('join');
 $('lobby-form').onsubmit=async(event)=>{
- event.preventDefault();if(connecting)return;audio.unlock();const nickname=$<HTMLInputElement>('nickname').value.trim(),code=$<HTMLInputElement>('join-code').value.trim().toUpperCase();
+ event.preventDefault();if(connecting)return;audio.unlock();if(!networkConfigured){text('lobby-error','好友联机尚未开放，请先体验人机对战。');return;}const nickname=$<HTMLInputElement>('nickname').value.trim(),code=$<HTMLInputElement>('join-code').value.trim().toUpperCase();
  if(!nickname||/[\u0000-\u001f\u007f<>]/u.test(nickname)){text('lobby-error','请填写 1–16 个字的昵称，不含特殊符号。');return;}
  if(lobbyMode==='join'&&!/^[A-Z2-9]{8}$/.test(code)){text('lobby-error','邀请码需要是 8 位大写字母或数字。');return;}
  connecting=true;button('connect-button').disabled=true;text('connect-button','正在连接球桌…');text('lobby-error','');save('eightball-name',nickname);const currentEpoch=++epoch;
@@ -189,20 +178,19 @@ $('lobby-form').onsubmit=async(event)=>{
 };
 $('ready-button').onclick=()=>{audio.unlock();if(send({type:'ready'}))button('ready-button').disabled=true;};
 $('rematch-button').onclick=()=>{if(localGame){send({type:'rematch'});return;}if(send({type:'rematch'}))button('rematch-button').disabled=true;};
-$('practice-place').onclick=()=>{if(isPractice()&&turnAllowed()){cancelInput();send({type:'practice-place',turnVersion:state!.turnVersion});}};
 async function copy(value:string,label:string){
  try{await navigator.clipboard.writeText(value);toast(`${label}已复制`);}catch{const t=document.createElement('textarea');t.value=value;t.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.append(t);t.select();const ok=document.execCommand('copy');t.remove();if(ok)toast(`${label}已复制`);else toast(`邀请码：${inviteCode}`);}
 }
 function invitationLink(){const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('invite',inviteCode);return url.href;}
 $('copy-code').onclick=()=>void copy(inviteCode,'邀请码');$('copy-link').onclick=()=>void copy(invitationLink(),'邀请链接');$('invite-button').onclick=()=>{
  if(!localGame){void copy(invitationLink(),'邀请链接');return;}
- cancelInput();text('confirm-title','重新摆球？');text('confirm-description',isPractice()?'当前练习进度会清空，重新摆满一桌球。':'当前试玩进度会清空，两人重新开局。');text('confirm-yes','重新摆球');confirmAction=()=>startLocal(localMode!);confirmDialog.showModal();
+ cancelInput();text('confirm-title','重新开局？');text('confirm-description','当前人机对局会清空，你与电脑重新开局。');text('confirm-yes','重新开局');confirmAction=startBot;confirmDialog.showModal();
 };
 async function leave(){const current=room;room=null;epoch++;online=false;cancelInput();clearSession();if(current){current.reconnection.enabled=false;void current.leave();}returnLobby();}
-function requestLeave(){cancelInput();settings.close();if(state&&!['waiting','finished'].includes(state.phase)){text('confirm-title','离开这场对局？');text('confirm-description',isPractice()?'当前练习进度不会保存，可以随时重新开始。':'正在进行的对局会按认输处理。');text('confirm-yes','确认离开');confirmAction=()=>void leave();confirmDialog.showModal();}else void leave();}
+function requestLeave(){cancelInput();settings.close();if(state&&!['waiting','finished'].includes(state.phase)){text('confirm-title','离开这场对局？');text('confirm-description',localGame?'当前人机对局不会保存，可以随时重新开始。':'正在进行的对局会按认输处理。');text('confirm-yes','确认离开');confirmAction=()=>void leave();confirmDialog.showModal();}else void leave();}
 let confirmAction:()=>void=()=>{};
 $('waiting-leave').onclick=requestLeave;$('result-leave').onclick=requestLeave;$('leave-button').onclick=requestLeave;
-$('resign-button').onclick=()=>{cancelInput();settings.close();text('confirm-title','确认认输？');text('confirm-description','本局将判好友获胜，结束后可以再来一局。');text('confirm-yes','确认认输');confirmAction=()=>{send({type:'resign'});};confirmDialog.showModal();};
+$('resign-button').onclick=()=>{cancelInput();settings.close();text('confirm-title','确认认输？');text('confirm-description',localGame?'本局将判电脑获胜，结束后可以再来一局。':'本局将判好友获胜，结束后可以再来一局。');text('confirm-yes','确认认输');confirmAction=()=>{send({type:'resign'});};confirmDialog.showModal();};
 $('confirm-cancel').onclick=()=>confirmDialog.close();$('confirm-yes').onclick=()=>{confirmDialog.close();confirmAction();};
 function openSettings(){cancelInput();settings.showModal();updateView();}
 $('menu-button').onclick=openSettings;$('lobby-help').onclick=openSettings;$('settings-close').onclick=()=>settings.close();settings.addEventListener('close',()=>{cancelInput();updateView();});
@@ -286,7 +274,7 @@ function frame(now:number){
  const power=charge.owner?charge.power:previewPower;
  renderer.draw({balls:currentBalls(Date.now()),angle,power:charge.owner?charge.power:0,guide:canShoot()?guide:null,showCue:!!state&&state.phase==='aiming'&&!state.ballInHand&&!overlaysOpen(),placement:turnAllowed()&&state?.ballInHand?placement:null,placementValid:!!state&&!!placement&&canPlace(state.balls,placement),motion:now});
  if(now-lastUi>60){lastUi=now;$('power-fill').style.height=`${Math.max(0,power)*100}%`;$('power-cue').style.top=`${3+(charge.owner?charge.power:0)*Math.max(0,$('power-slider').clientHeight-40)}px`;$('power-slider').setAttribute('aria-valuenow',String(Math.round(power*100)));$('power-value').innerHTML=`${Math.round(power*100)}<span>%</span>`;text('power-label',charge.owner?'当前力度':'预览力度');
- if(state){const seconds=state.deadline===null?null:Math.max(0,Math.ceil((state.deadline-(Date.now()+serverOffset))/1000));text('timer',state.phase==='aiming'?(seconds===null?(isPractice()?'∞':'Ⅱ'):String(seconds)):state.phase==='animating'?'…':state.phase==='finished'?'8':'—');$('clock').style.setProperty('--progress',`${seconds===null?100:Math.min(100,seconds/60*100)}%`);$('clock').classList.toggle('urgent',seconds!==null&&seconds<=10);
+ if(state){const seconds=state.deadline===null?null:Math.max(0,Math.ceil((state.deadline-(Date.now()+serverOffset))/1000));text('timer',state.phase==='aiming'?(seconds===null?'Ⅱ':String(seconds)):state.phase==='animating'?'…':state.phase==='finished'?'8':'—');$('clock').style.setProperty('--progress',`${seconds===null?100:Math.min(100,seconds/60*100)}%`);$('clock').classList.toggle('urgent',seconds!==null&&seconds<=10);
  if(reconnecting)networkMessage(`正在恢复连接 · ${Math.max(0,Math.ceil((reconnectUntil-Date.now())/1000))} 秒`);
  else if(!connected(state)&&!['waiting','finished'].includes(state.phase)){const gone=state.players.find(p=>p&&!p.connected);const remaining=gone?.disconnectedAt?Math.max(0,Math.ceil((state.reconnectMs-(Date.now()+serverOffset-gone.disconnectedAt))/1000)):60;networkMessage(`好友断线，等待恢复 · ${remaining} 秒`);}else if(online)networkMessage('');
  }
@@ -309,19 +297,26 @@ async function restore(){
  catch{clearSession();text('lobby-error','上一间房已结束，可以重新建房。');}
  finally{connecting=false;button('connect-button').disabled=false;setLobbyMode(lobbyMode);}
 }
-function startLocal(mode:'practice'|'hotseat'){
- audio.unlock();epoch++;connecting=false;localGame?.stop();localMode=mode;state=null;resetAim();online=true;seat=0;show('lobby',false);
- const Game=mode==='practice'?PracticeGame:LocalGame;
- localGame=new Game((balls,shot)=>physics.simulate(balls,shot),applySnapshot,message=>{sending=false;pendingShot=null;placing=false;toast(errorMessage(message));});
- localGame.start();
- toast(mode==='practice'?'单人练习 · 不限时，任意顺序进球；下方可自由摆放白球。':'同屏双人 · 鼠标瞄准，按住 W 蓄力后松开；手机右侧下拉出杆。');
+function startBot(){
+ audio.unlock();epoch++;connecting=false;localGame?.stop();state=null;resetAim();online=true;seat=0;show('lobby',false);
+ localGame=new BotGame(
+   (balls,shot)=>physics.simulate(balls,shot),position=>physics.chooseBot(position),applySnapshot,
+   message=>{sending=false;pendingShot=null;placing=false;toast(errorMessage(message));},
+   value=>{angle=value;invalidateGuide();},
+ );
+ localGame.start();toast('人机对战 · 你先开球。鼠标瞄准，按住 W 松开出杆；手机右侧下拉出杆。');
 }
-$('practice-start').onclick=()=>startLocal('practice');
-$('practice-full-start').onclick=()=>startLocal('practice');
-$('demo-start').onclick=()=>startLocal('hotseat');
-if(demoMode){
- document.body.classList.add('demo-mode');document.title='好友八球 · 单人练习与同屏对战';
- text('lobby-title','瞄准，然后出杆。');
- text('lobby-description','一个人，随时练一杆。也可以和好友同屏切磋。体验双准线与高低杆，无需注册。');
- show('lobby-form',false);show('demo-actions',true);text('lobby-mode-label','单人练习 / 同屏双人 · 即开即玩');
-}else void restore();
+function showModeSelect(){
+ show('mode-actions',true);show('friend-panel',false);
+ text('lobby-title','选好对手，来一局。');text('lobby-description','独自挑战电脑，或邀请好友联机切磋。绿色球台、双准线与高低杆，随时开打。');
+}
+function showFriendMode(){
+ show('mode-actions',false);show('friend-panel',true);show('lobby-form',networkConfigured);show('friend-unavailable',!networkConfigured);
+ text('lobby-title','好友，各自入座。');text('lobby-description','两人各用自己的电脑或手机。创建房间，把邀请码发给好友，即可联机对战。');
+}
+$('bot-start').onclick=startBot;$('friend-start').onclick=showFriendMode;$('mode-back').onclick=showModeSelect;
+showModeSelect();
+document.title='好友八球 · 人机对战与好友联机';
+if(demoMode)document.body.classList.add('demo-mode');
+if(invite)showFriendMode();
+if(networkConfigured)void restore();

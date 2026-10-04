@@ -10,6 +10,9 @@ flowchart TB
     Input[鼠标 / 触摸 / W 蓄力] --> UI[web/main.ts]
     UI --> Render[Canvas + Web Audio]
     UI <--> PW[物理 Web Worker]
+    UI --> BotGame[人机状态机 BotGame]
+    BotGame --> Search[Worker 候选击球搜索]
+    Search --> PW
   end
   subgraph Backend[单进程 Node.js 后端]
     Room[Colyseus Room] --> Match[shared/match.ts]
@@ -51,13 +54,13 @@ stateDiagram-v2
 
 模型为休闲平面物理，包含碰撞、库边反弹、滑动和滚动摩擦，以及简化的高低杆。球杆冲量部分改编自 Apache-2.0 的 pooltool；出处、提交及改动见第三方声明。
 
-## 本地单人练习与 Pages Demo
+## 人机对战与 Pages Demo
 
-`shared/practice-game.ts` 独立管理单人练习：仅一个玩家，没有倒计时、不调用八球判罚，全部 15 颗目标球入袋即完成。白球落袋后进入摆球状态，也可主动自由摆白球。出杆、动画期间锁定操作，重摆和退出用代次标识丢弃异步结果。练习与同屏双人共用物理 Worker、动画及输入控制。完整版和 Pages 都提供练习入口。
+`shared/bot-game.ts` 用 `Match` 驱动人机对局：人类固定席位 0，电脑固定席位 1。电脑回合自动搜索、摆球、出杆；人类输入仍受回合与版本校验约束。异步决策和模拟用代次、回合版本与阶段校验，重开、认输或退出后的结果不得影响新局。
 
-`shared/local-game.ts` 把相同的 `Match` 状态机接到浏览器的物理 Worker。当前回合玩家由同一个页面控制，因此是**同屏双人**而非远程对战，也没有 AI 对手。模拟期间重开或退出时，用代次标识丢弃过期结果。
+`shared/bot.ts` 在浏览器物理 Worker 内运行：按球组选合法目标，根据袋口和接触点生成候选角度、力度与击点；最多模拟 54 杆（42 条优先进球候选 + 12 条触球候选），用同一套八球规则评价进球、犯规和胜负。自由球优先选有直线进球机会的合法位置。固定难度，不调用大模型或外部 API；不是专业台球 AI。
 
-`npm run build:demo` 显式开启 `VITE_DEMO=true`。Pages 只部署构建后的 `web-dist/`，不上传后端状态、数据目录或密钥。完整版本 `npm run build` 提供单人练习及邀请好友模式。
+`npm run build:demo` 开启 `VITE_DEMO=true`。Pages 只部署 `web-dist/`，默认可玩人机；未配置后端时，好友联机入口明确提示尚未开放，不尝试连接虚假的房间服务。设置仓库 Actions 变量 `VITE_BACKEND_URL` 并重新构建即可接入真实后端。完整版 `npm run build` 默认使用同源后端。
 
 ## 联网边界
 
@@ -70,4 +73,4 @@ stateDiagram-v2
 
 ## 可继续改善的方向
 
-实体手机与 Safari 适配、碰袋模型、弱网体验和可复现的公网容量测试优先于新功能。AI 对手需要候选击球搜索与局面评分；当前没有接入大模型，也不把确定性轨迹预测称为 AI。
+实体手机与 Safari 适配、碰袋模型、弱网体验和可复现的公网容量测试优先于新功能。电脑对手后续可增加难度分级、安全球与多库解球。当前采用候选击球搜索，不接入大模型；双准线仍是确定性物理预测。

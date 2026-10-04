@@ -32,6 +32,8 @@ export function createBackend(config:Config): {services:Services;server:Server;h
   const cors=(req:IncomingMessage)=>({
     "Access-Control-Allow-Origin":req.headers.origin??config.origins[0]??"http://localhost:5173",
     "Access-Control-Allow-Methods":"GET,POST,OPTIONS",
+    // Colyseus SDK sends credentialed requests; only allowlisted Origins reach this response.
+    "Access-Control-Allow-Credentials":"true",
     "Access-Control-Allow-Headers":"Content-Type,Authorization",
     "Vary":"Origin","Cache-Control":"no-store",
   });

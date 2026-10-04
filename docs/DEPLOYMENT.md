@@ -2,7 +2,7 @@
 
 ## 在线 Demo：GitHub Pages
 
-本仓库的 [Pages Demo](https://hexing-ai.github.io/eight-ball-web/) 提供单人自由练习和同屏双人八球，完全在浏览器运行，不依赖云服务器。关闭页面后不会留下房间；刷新重新开始。
+本仓库的 [Pages Demo](https://hexing-ai.github.io/eight-ball-web/) 提供人机对战，在浏览器内运行，不依赖云服务器。好友联机入口需接入真实后端，当前公网后端暂未部署，页面会明确提示尚未开放。关闭页面后不会留下房间；刷新重新开始。
 
 维护者将 Pages 的 Build and deployment 设为 **GitHub Actions**。推送 `main` 后，`.github/workflows/pages.yml` 安装锁定依赖，运行类型检查和测试，再构建、发布 `web-dist/`。
 
@@ -21,7 +21,7 @@ npm ci
 npm run dev
 ```
 
-访问 `http://127.0.0.1:5188/`，在两个标签页建房和加入。开发脚本同时启动前端与后端；按 Ctrl+C 结束。前端默认端口 5188，后端默认端口 2567。
+访问 `http://127.0.0.1:5188/`，点击「好友联机」后建房和加入（可先用两个独立标签页联调，实际玩法为两台设备各自操作）。开发脚本同时启动前端与后端；按 Ctrl+C 结束。前端默认端口 5188，后端默认端口 2567。
 
 如 5188 被占用，在 macOS/Linux 使用 `DEV_PORT=5189 npm run dev`。如果后端端口需要调整，还需同步修改 `vite.config.ts` 的代理目标。
 
@@ -79,6 +79,15 @@ pool.example.com {
 ```
 
 HTTPS/WSS、域名和端口开放需要在实际宿主环境验证；仓库的 Pages Demo 不会替你部署这个后端。
+
+### Pages 接入好友联机后端
+
+本次暂不部署后端。准备上线时：
+
+1. 部署上方的 Node.js 服务并提供 HTTPS/WSS，后端 `ALLOWED_ORIGINS` 加入 `https://hexing-ai.github.io`。
+2. GitHub 仓库 Settings → Secrets and variables → Actions → Variables 设置 `VITE_BACKEND_URL=https://实际后端域名`（不带 `/socket`；API 与 Colyseus 使用根路径）。这是公开服务地址，不放密钥。
+3. 重新运行 `Deploy playable demo` 工作流；构建会启用好友联机表单，同时保留人机模式。
+4. 两台设备分别建房、加入、准备并出杆，验证球位同步和重连。只设置变量不代表后端已经可用。
 
 ### 容器方式
 

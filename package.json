@@ -35,6 +35,6 @@
   "overrides": {
     "nanoid": "^3.3.18"
   },
-  "description": "Landscape eight-ball pool with dual aim guides, spin and self-hosted friend multiplayer.",
+  "description": "Landscape eight-ball pool with computer opponents, dual aim guides, spin and invite-based online multiplayer.",
   "license": "UNLICENSED"
 }
