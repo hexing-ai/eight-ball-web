@@ -94,15 +94,17 @@ export function simulate(initial: Ball[], shot: Shot, options: { frames?: boolea
       b.x += b.vx * DT; b.y += b.vy * DT;
       const pocket = POCKETS.findIndex(p => Math.hypot(b.x-p.x,b.y-p.y) < TABLE.pocketRadius);
       if (pocket !== -1) {
+        const speed=Math.hypot(b.vx,b.vy);
         b.pocketed = true; b.vx=b.vy=b.wx=b.wy=0;
-        events.push({type:"pocket",t,ball:b.id,pocket}); continue;
+        events.push({type:"pocket",t,ball:b.id,pocket,speed}); continue;
       }
       let hit = false;
+      const cushionSpeed=Math.max((b.x<R||b.x>TABLE.width-R)?Math.abs(b.vx):0,(b.y<R||b.y>TABLE.height-R)?Math.abs(b.vy):0);
       if (b.x < R && b.vx < 0) { b.x=R; b.vx=-b.vx*0.82; hit=true; }
       if (b.x > TABLE.width-R && b.vx > 0) { b.x=TABLE.width-R; b.vx=-b.vx*0.82; hit=true; }
       if (b.y < R && b.vy < 0) { b.y=R; b.vy=-b.vy*0.82; hit=true; }
       if (b.y > TABLE.height-R && b.vy > 0) { b.y=TABLE.height-R; b.vy=-b.vy*0.82; hit=true; }
-      if (hit) events.push({type:"cushion",t,ball:b.id});
+      if (hit) events.push({type:"cushion",t,ball:b.id,speed:cushionSpeed});
     }
     for (let i=0;i<balls.length;i++) for (let j=i+1;j<balls.length;j++) {
       const a=balls[i], b=balls[j];
@@ -116,7 +118,7 @@ export function simulate(initial: Ball[], shot: Shot, options: { frames?: boolea
       if (closing > 1e-8) {
         const impulse=closing*0.98;
         a.vx-=impulse*nx; a.vy-=impulse*ny; b.vx+=impulse*nx; b.vy+=impulse*ny;
-        events.push({type:"collision",t,a:a.id,b:b.id});
+        events.push({type:"collision",t,a:a.id,b:b.id,speed:closing});
       }
     }
     for (const b of balls) if (!b.pocketed) {

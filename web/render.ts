@@ -1,3 +1,4 @@
+import { trimPath, GUIDE_LENGTH } from '../shared/guide-display.js';
 import { TABLE, POCKETS } from '../shared/physics.js';
 import type { Ball, Guide, Vec } from '../shared/types.js';
 export const COLORS=['#f3efdf','#e9ae15','#245bb9','#bd272c','#743b95','#df7428','#227c50','#782c30','#10171e'];
@@ -83,7 +84,7 @@ export class TableRenderer {
   }
   draw(scene:Scene){
     const c=this.ctx;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,this.canvas.width,this.canvas.height);c.drawImage(this.background,0,0);this.world(c);
-    if(scene.guide){const g=scene.guide;this.path(c,g.incoming,'#f7f4dfc9');this.path(c,g.target,'#ffce4c',false,true);this.path(c,g.cue,'#8cdceb',true,true);if(g.impact){c.beginPath();c.arc(g.impact.x,g.impact.y,R,0,Math.PI*2);c.strokeStyle='#fffde29c';c.lineWidth=.002;c.fillStyle='#e9ffe11a';c.fill();c.stroke();if(g.cueStops){c.beginPath();c.arc(g.impact.x,g.impact.y,.006,0,Math.PI*2);c.fillStyle='#8cdceb';c.fill();}}}
+    if(scene.guide){const g=scene.guide;this.path(c,trimPath(g.incoming,GUIDE_LENGTH.incoming),'#f7f4dfc9');this.path(c,trimPath(g.target,GUIDE_LENGTH.target),'#ffce4c',false,true);this.path(c,trimPath(g.cue,GUIDE_LENGTH.cue),'#8cdceb',true,true);if(g.impact){c.beginPath();c.arc(g.impact.x,g.impact.y,R,0,Math.PI*2);c.strokeStyle='#fffde29c';c.lineWidth=.002;c.fillStyle='#e9ffe11a';c.fill();c.stroke();if(g.cueStops){c.beginPath();c.arc(g.impact.x,g.impact.y,.006,0,Math.PI*2);c.fillStyle='#8cdceb';c.fill();}}}
     for(const b of scene.balls)if(!b.pocketed)this.drawBall(c,b);
     const cue=scene.balls.find(b=>b.id===0);
     if(scene.showCue&&cue&&!cue.pocketed){

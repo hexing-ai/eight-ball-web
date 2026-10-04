@@ -7,10 +7,10 @@ export interface Ball extends Vec {
   id: number; vx: number; vy: number; wx: number; wy: number; pocketed: boolean;
 }
 export interface Shot { angle: number; power: number; spin: number }
-export type PhysicsEvent =
+export type PhysicsEvent = { speed?: number } & (
   | { type: "collision"; t: number; a: number; b: number }
   | { type: "cushion"; t: number; ball: number }
-  | { type: "pocket"; t: number; ball: number; pocket: number };
+  | { type: "pocket"; t: number; ball: number; pocket: number });
 export interface Frame { t: number; balls: Array<{ id: number; x: number; y: number; pocketed: boolean }> }
 export interface Simulation {
   balls: Ball[]; events: PhysicsEvent[]; frames: Frame[]; duration: number;

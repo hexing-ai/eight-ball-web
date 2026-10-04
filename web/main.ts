@@ -7,6 +7,7 @@ import type { Match,ActiveShot } from '../server/match.js';
 import { TableRenderer,COLORS,type RenderBall } from './render.js';
 import { PhysicsClient } from './physics-client.js';
 import { GameAudio } from './audio.js';
+import { Tutorial } from './tutorial.js';
 import { BotGame } from '../shared/bot-game.js';
 
 type Snapshot=ReturnType<Match['snapshot']>;
@@ -37,8 +38,9 @@ let lobbyMode:'create'|'join'='create',sensitivity=Number(read('eightball-sensit
 const previewBalls=[ball(0,.86,.87),ball(1,.58,.24),ball(2,1.25,1.05),ball(3,1.54,.52),ball(4,.38,.55),ball(8,1.22,.36),ball(9,2.25,.64),ball(10,1.85,.98),ball(13,2.0,.22),ball(14,2.23,.95)];
 angle=Math.atan2(.54-.87,1.49-.86);
 const settings=$<HTMLDialogElement>('settings'),confirmDialog=$<HTMLDialogElement>('confirm-dialog');
+const tutorial=new Tutorial(()=>{cancelInput();updateView();},()=>!!state&&!['waiting','finished'].includes(state.phase));
 const portrait=()=>matchMedia('(orientation:portrait) and (max-width:900px)').matches;
-const overlaysOpen=()=>!$('lobby').hidden||!$('waiting').hidden||!$('result').hidden||settings.open||confirmDialog.open;
+const overlaysOpen=()=>!$('lobby').hidden||!$('waiting').hidden||!$('result').hidden||settings.open||confirmDialog.open||tutorial.open;
 const editable=(target:EventTarget|null)=>target instanceof HTMLElement&&(target.matches('input,textarea,select')||target.isContentEditable);
 const turnAllowed=()=>!!state&&online&&state.phase==='aiming'&&state.current===seat&&connected(state)&&!overlaysOpen()&&!portrait()&&!sending;
 const canShoot=()=>turnAllowed()&&!state!.ballInHand;
@@ -125,7 +127,7 @@ async function startPlayback(shot:ActiveShot){
  const key=`${state?.matchId}:${shot.id}`;if(playback?.key===key)return;
  angle=shot.input.angle;
  const playing={key,shot,result:null as Simulation|null,eventIndex:0};playback=playing;invalidateGuide();
- audio.play('cue');
+ audio.play('cue',shot.input.power,shot.before.find(b=>b.id===0)!.x/TABLE.width*2-1);
  try{const result=await physics.simulate(shot.before,shot.input);if(playback!==playing)return;playing.result=result;const elapsed=Math.max(0,(Date.now()+serverOffset-shot.startsAt)/1000);while(playing.eventIndex<result.events.length&&result.events[playing.eventIndex].t<elapsed-.05)playing.eventIndex++;}
  catch{toast(localGame?'动画计算未完成，等待本杆结算。':'动画计算未完成，等待服务器同步球位。');}
 }
@@ -193,11 +195,12 @@ $('waiting-leave').onclick=requestLeave;$('result-leave').onclick=requestLeave;$
 $('resign-button').onclick=()=>{cancelInput();settings.close();text('confirm-title','确认认输？');text('confirm-description',localGame?'本局将判电脑获胜，结束后可以再来一局。':'本局将判好友获胜，结束后可以再来一局。');text('confirm-yes','确认认输');confirmAction=()=>{send({type:'resign'});};confirmDialog.showModal();};
 $('confirm-cancel').onclick=()=>confirmDialog.close();$('confirm-yes').onclick=()=>{confirmDialog.close();confirmAction();};
 function openSettings(){cancelInput();settings.showModal();updateView();}
+$('tutorial-replay').onclick=()=>{settings.close();tutorial.show();};
 $('menu-button').onclick=openSettings;$('lobby-help').onclick=openSettings;$('settings-close').onclick=()=>settings.close();settings.addEventListener('close',()=>{cancelInput();updateView();});
 $<HTMLSelectElement>('sensitivity').value=String(sensitivity);$('sensitivity').onchange=()=>{sensitivity=Number($<HTMLSelectElement>('sensitivity').value);save('eightball-sensitivity',String(sensitivity));};
 audio.enabled=read('eightball-sound')!=='off';
 function updateSound(){button('sound-button').setAttribute('aria-pressed',String(audio.enabled));button('sound-button').setAttribute('aria-label',audio.enabled?'关闭声音':'开启声音');text('sound-button',audio.enabled?'♪':'♩');}
-$('sound-button').onclick=()=>{audio.enabled=!audio.enabled;save('eightball-sound',audio.enabled?'on':'off');audio.unlock();updateSound();};updateSound();
+$('sound-button').onclick=()=>{if(audio.enabled)audio.mute();else audio.enabled=true;save('eightball-sound',audio.enabled?'on':'off');audio.unlock();updateSound();};updateSound();
 $('fullscreen-button').onclick=()=>{cancelInput();const op=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();void op?.catch(()=>toast('当前浏览器不支持全屏，可直接横屏游玩。'));};
 function shoot(power:number){
  if(!canShoot()||!state)return;audio.unlock();cancelInput();guide=null;previewPower=power;
@@ -207,7 +210,7 @@ function shoot(power:number){
 function startCharge(owner:string){if(!canShoot()||charge.owner)return false;audio.unlock();if(!charge.begin(owner,performance.now()))return false;document.body.classList.add('charging');return true;}
 function endCharge(owner:string){const power=charge.release(owner,performance.now());document.body.classList.remove('charging');if(power!==null)shoot(power);}
 window.addEventListener('keydown',e=>{
- if(e.key==='Tab'&&!settings.open&&!confirmDialog.open){
+ if(e.key==='Tab'&&!settings.open&&!confirmDialog.open&&!tutorial.open){
    const overlay=['lobby','waiting','result'].map(id=>$(id)).find(el=>!el.hidden);
    if(overlay){const targets=Array.from(overlay.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),[tabindex="0"]')).filter(el=>el.getClientRects().length);const first=targets[0],last=targets.at(-1);if(first&&last){if(e.shiftKey&&(document.activeElement===first||!overlay.contains(document.activeElement))){e.preventDefault();last.focus();}else if(!e.shiftKey&&(document.activeElement===last||!overlay.contains(document.activeElement))){e.preventDefault();first.focus();}}}
  }
@@ -255,7 +258,11 @@ function currentBalls(now:number):RenderBall[]{
  const time=Math.max(0,Math.min(p.result.duration,(now+serverOffset-p.shot.startsAt)/1000)),frames=p.result.frames;
  let lo=0,hi=frames.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(frames[mid].t<=time)lo=mid;else hi=mid-1;}
  const a=frames[lo],b=frames[Math.min(lo+1,frames.length-1)],f=b.t===a.t?0:(time-a.t)/(b.t-a.t);
- let played=0;while(p.eventIndex<p.result.events.length&&p.result.events[p.eventIndex].t<=time){const event=p.result.events[p.eventIndex++];if(played++<2&&time-event.t<.08)audio.play(event.type==='pocket'?'pocket':'collision');}
+ while(p.eventIndex<p.result.events.length&&p.result.events[p.eventIndex].t<=time){
+   const event=p.result.events[p.eventIndex++];if(time-event.t>.08)continue;
+   const hit=a.balls.find(ball=>ball.id===(event.type==='collision'?event.a:event.ball));
+   audio.play(event.type,Math.min(1,(event.speed??1.2)/4),hit?hit.x/TABLE.width*2-1:0);
+ }
  return a.balls.map((ball,index)=>{const target=b.balls[index];return {...ball,x:ball.x+(target.x-ball.x)*f,y:ball.y+(target.y-ball.y)*f,pocketed:ball.pocketed||(f>.95&&target.pocketed)};});
 }
 function updatePreview(now:number){
@@ -314,7 +321,7 @@ function showFriendMode(){
  show('mode-actions',false);show('friend-panel',true);show('lobby-form',networkConfigured);show('friend-unavailable',!networkConfigured);
  text('lobby-title','好友，各自入座。');text('lobby-description','两人各用自己的电脑或手机。创建房间，把邀请码发给好友，即可联机对战。');
 }
-$('bot-start').onclick=startBot;$('friend-start').onclick=showFriendMode;$('mode-back').onclick=showModeSelect;
+$('bot-start').onclick=()=>{audio.unlock();tutorial.beforeStart(startBot);};$('friend-start').onclick=()=>tutorial.beforeStart(showFriendMode);$('mode-back').onclick=showModeSelect;
 showModeSelect();
 document.title='好友八球 · 人机对战与好友联机';
 if(demoMode)document.body.classList.add('demo-mode');

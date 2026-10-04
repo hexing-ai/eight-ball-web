@@ -1,0 +1,21 @@
+#tutorial{width:600px;max-width:92vw;padding:24px 28px;max-height:94dvh}
+.tutorial-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+#tutorial-progress{font-size:12px;color:var(--brass);letter-spacing:1px}
+#tutorial-skip{min-height:44px;padding:10px 12px;border:1px solid #c9a36d55}
+#tutorial-art{background:#174e31;border:1px solid #c9a36d44;border-radius:10px;margin-bottom:22px;overflow:hidden}
+#tutorial-art svg{display:block;width:100%;max-height:170px}
+.tutorial-copy h2{font-size:24px;margin-bottom:12px}
+#tutorial-body{color:#e1e4d8;font-size:14px;line-height:1.9;min-height:54px;margin:0 0 10px}
+#tutorial-hint{font-size:12px;line-height:1.8;color:#b8c9b9;margin:0}
+#tutorial-note{color:#95aa9c;font-size:11px;margin:20px 0 12px;line-height:1.6}
+.tutorial-actions{display:flex;justify-content:space-between;gap:12px}
+.tutorial-actions button{min-width:110px;min-height:44px}
+@media(max-height:540px) and (orientation:landscape){
+ #tutorial{width:730px;padding:14px 22px}
+ .tutorial-head{margin-bottom:10px}
+ .tutorial-layout{display:grid;grid-template-columns:210px 1fr;gap:22px;align-items:center}
+ #tutorial-art{margin:0}#tutorial-art svg{height:140px}
+ .tutorial-copy h2{font-size:21px;margin-bottom:8px}
+ #tutorial-body{font-size:12px;min-height:0;line-height:1.8}
+ #tutorial-hint{font-size:11px}#tutorial-note{margin:12px 0 8px}
+}

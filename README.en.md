@@ -14,7 +14,9 @@ A landscape pool game for desktop and mobile browsers, with two aim guides, foll
 
 Open the [demo](https://hexing-ai.github.io/eight-ball-web/), click the gold vs-computer button, aim with your mouse, hold **W**, then release to shoot. On mobile, rotate to landscape, drag to aim and pull down the right power bar to shoot. The left rail fine-tunes the angle; the cue-ball widget sets top/back spin.
 
-Gold predicts the object-ball direction. Dashed blue predicts the cue-ball direction after contact. Both respond to shot power and strike position.
+A four-step illustrated tutorial appears before your first game. Skip at any step, or revisit it from the menu.
+
+Gold predicts the object-ball direction. Dashed blue predicts the cue-ball direction after contact. Both respond to shot power and strike position, with short hints of roughly three to four ball diameters. Cue, ball, cushion and pocket impacts use distinct synthesized sounds with impact-dependent volume and stereo position.
 
 ## Run locally
 
